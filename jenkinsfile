@@ -1,0 +1,34 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('code') {
+            steps{
+                echo "cloning the code"
+                git url :"https://github.com/priyal-8/jenkins.git" , branch :"main"
+            }
+        }
+        stage('Build') {
+            steps{
+                echo "building the code"
+                sh "docker build -t my-notes-app ."
+            }
+        }
+        stage('push') {
+            steps{
+                echo "pushing the code"
+                 withCredentials([usernamePassword(credentialsId:"dockerHub",passwordVariable:"dockerHubPass",usernameVariable:"dockerHubUser")]){
+                sh "docker tag my-notes-app ${env.dockerHubUser}/my-notes-app:latest"
+                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
+                sh "docker push ${env.dockerHubUser}/my-notes-app:latest"
+                }
+            }
+        }
+        stage('deploy') {
+            steps{
+                echo "deploying the code"
+                sh "docker-compose down && docker-compose up -d"
+            }
+        }
+    }       
+}
